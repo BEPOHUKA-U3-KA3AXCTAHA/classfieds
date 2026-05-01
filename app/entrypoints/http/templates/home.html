@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="mb-8">
+    <h1 class="text-3xl font-bold mb-2">{{ t('site.tagline', lang) }}</h1>
+    <form action="/{{ lang }}/" method="get" class="flex gap-2 mt-4">
+        <input type="search" name="q" placeholder="{{ t('search.placeholder', lang) }}"
+               class="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500">
+        <button type="submit" class="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+            {{ t('search.button', lang) }}
+        </button>
+    </form>
+</section>
+
+{% if categories %}
+<section class="mb-8">
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        {% for cat in categories %}
+        <a href="/{{ lang }}/" class="block p-3 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 text-center text-sm">
+            {{ cat.name(lang) }}
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section>
+    <h2 class="text-xl font-semibold mb-4">{{ t('nav.listings', lang) }}</h2>
+    {% if listings %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for listing in listings %}
+        <a href="/{{ lang }}/l/{{ listing.id }}" class="block bg-white border border-slate-200 rounded-lg overflow-hidden hover:border-emerald-500 transition">
+            {% if listing.images %}
+            <img src="{{ listing.images[0].url }}" alt="" class="w-full h-40 object-cover">
+            {% else %}
+            <div class="w-full h-40 bg-slate-100 flex items-center justify-center text-slate-400 text-sm">no image</div>
+            {% endif %}
+            <div class="p-3">
+                <h3 class="font-semibold text-sm mb-1 line-clamp-2">{{ listing.title_for(lang) }}</h3>
+                {% if listing.price %}
+                <div class="text-emerald-700 font-bold">{{ listing.price.amount }} {{ listing.price.currency }}</div>
+                {% endif %}
+                <div class="text-xs text-slate-500 mt-1">
+                    {% if listing.city %}{{ listing.city }}{% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white border border-dashed border-slate-300 rounded-lg p-12 text-center text-slate-500">
+        {{ t('empty.no_listings', lang) }}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

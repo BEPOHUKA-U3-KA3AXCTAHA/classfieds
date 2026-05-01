@@ -1,0 +1,13 @@
+{
+  "site.name": "Oglasi.me",
+  "site.tagline": "Все объявления Черногории в одном месте",
+  "nav.home": "Главная",
+  "nav.listings": "Объявления",
+  "nav.post": "Подать объявление",
+  "listing.translate": "Перевести",
+  "listing.contact_telegram": "Написать в Telegram",
+  "listing.original_source_notice": "Это объявление взято из {source}.",
+  "search.placeholder": "Поиск по объявлениям...",
+  "search.button": "Найти",
+  "empty.no_listings": "Пока пусто. Скоро здесь появятся объявления!"
+}

@@ -1,0 +1,13 @@
+{
+  "site.name": "Oglasi.me",
+  "site.tagline": "Sve oglase Crne Gore na jednom mjestu",
+  "nav.home": "Početna",
+  "nav.listings": "Oglasi",
+  "nav.post": "Postavi oglas",
+  "listing.translate": "Prevedi",
+  "listing.contact_telegram": "Pošalji poruku na Telegramu",
+  "listing.original_source_notice": "Ovaj oglas je preuzet iz {source}.",
+  "search.placeholder": "Pretraži oglase...",
+  "search.button": "Traži",
+  "empty.no_listings": "Još uvijek nema oglasa. Uskoro!"
+}

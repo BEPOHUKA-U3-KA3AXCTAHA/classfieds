@@ -1,0 +1,13 @@
+{
+  "site.name": "Oglasi.me",
+  "site.tagline": "All Montenegro classifieds in one place",
+  "nav.home": "Home",
+  "nav.listings": "Listings",
+  "nav.post": "Post a listing",
+  "listing.translate": "Translate",
+  "listing.contact_telegram": "Message on Telegram",
+  "listing.original_source_notice": "This listing was imported from {source}.",
+  "search.placeholder": "Search listings...",
+  "search.button": "Search",
+  "empty.no_listings": "No listings yet. Coming soon!"
+}
