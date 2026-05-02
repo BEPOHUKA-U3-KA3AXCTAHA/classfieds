@@ -112,6 +112,10 @@ async def seed_sources(session) -> int:
     if await repo.get_by_name(SourceType.MOJKVADRAT, "mojkvadrat.me") is None:
         await register_source(repo, SourceType.MOJKVADRAT, "mojkvadrat.me", url="https://www.mojkvadrat.me")
         count += 1
+    # Polovni Auto: тоже один источник на весь сайт
+    if await repo.get_by_name(SourceType.POLOVNI, "polovniautomobili.com") is None:
+        await register_source(repo, SourceType.POLOVNI, "polovniautomobili.com", url="https://www.polovniautomobili.com")
+        count += 1
     return count
 
 

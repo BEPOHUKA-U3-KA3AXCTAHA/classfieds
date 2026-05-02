@@ -10,6 +10,7 @@ class SourceType(str, enum.Enum):
     FACEBOOK = "facebook"
     OLX = "olx"
     MOJKVADRAT = "mojkvadrat"
+    POLOVNI = "polovni"
 
 
 @dataclass

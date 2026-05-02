@@ -194,9 +194,36 @@ async def _run_mojkvadrat(translator: Translator) -> int:
             raise
 
 
+async def _run_polovni(translator: Translator) -> int:
+    from app.modules.sources import SourceType
+    from app.modules.scraping.adapters.polovni_auto_scraper import PolovniAutoScraper
+    async with SessionLocal() as session:
+        try:
+            scraper = PolovniAutoScraper()
+            try:
+                count = await import_telegram_posts(
+                    scraper=scraper,
+                    sources_repo=SqlaSourceRepository(session),
+                    listings_repo=SqlaListingRepository(session),
+                    translator=translator,
+                    source_type=SourceType.POLOVNI,
+                )
+            finally:
+                await scraper.close()
+            await session.commit()
+            return count
+        except Exception:
+            await session.rollback()
+            raise
+
+
 async def main(argv: list[str]) -> None:
-    only = "telegram" if "--only-telegram" in argv else \
-           "mojkvadrat" if "--only-mojkvadrat" in argv else "all"
+    only = (
+        "telegram" if "--only-telegram" in argv
+        else "mojkvadrat" if "--only-mojkvadrat" in argv
+        else "polovni" if "--only-polovni" in argv
+        else "all"
+    )
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -211,6 +238,9 @@ async def main(argv: list[str]) -> None:
     if only in ("all", "mojkvadrat"):
         print(f"  → mojkvadrat.me (HTTP)")
         total += await _run_mojkvadrat(translator)
+    if only in ("all", "polovni"):
+        print(f"  → polovniautomobili.com (JSON-LD)")
+        total += await _run_polovni(translator)
 
     print(f"  ✓ импортировано новых объявлений всего: {total}")
 
