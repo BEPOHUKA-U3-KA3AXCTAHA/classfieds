@@ -8,7 +8,8 @@ Cross-module deps go via direct imports of other modules' public APIs:
 Scraping module owns ONE driven port: Scraper.
 """
 import hashlib
-from datetime import datetime, timezone
+import re
+from decimal import Decimal
 
 from app.modules.scraping.ports.scraper import Scraper
 from app.modules.sources import SourceRepository, SourceType, list_active_sources
@@ -26,6 +27,19 @@ def _dedup_hash(text: str) -> str:
     return hashlib.sha256(norm.encode()).hexdigest()[:32]
 
 
+# Минимальный фильтр явного мусора: после очистки от пробелов и эмодзи
+# должно остаться хотя бы 20 содержательных символов и минимум 4 буквенных слова.
+_EMOJI_PUNCT_RE = re.compile(r"[\W_]+", re.UNICODE)
+
+
+def _is_garbage(text: str) -> bool:
+    if len(text.strip()) < 30:
+        return True
+    cleaned = _EMOJI_PUNCT_RE.sub(" ", text)
+    words = [w for w in cleaned.split() if len(w) >= 2 and any(c.isalpha() for c in w)]
+    return len(words) < 4
+
+
 async def import_telegram_posts(
     *,
     scraper: Scraper,
@@ -40,6 +54,10 @@ async def import_telegram_posts(
 
     for src in sources:
         async for raw in scraper.fetch(src.name, limit=limit_per_channel):
+            # ранний скип явного мусора — экономит LLM-вызовы
+            if _is_garbage(raw.text):
+                continue
+
             existing = await listings_repo.get_by_external(src.id, raw.external_id)
             if existing is not None:
                 continue
@@ -49,9 +67,13 @@ async def import_telegram_posts(
             except ParseError:
                 continue
 
+            # повторная проверка после парсинга — заголовок должен быть содержательным
+            if not parsed.title or _is_garbage(parsed.title) and len(parsed.title) < 12:
+                continue
+
             price = None
             if parsed.price_amount is not None:
-                price = Money(amount=parsed.price_amount, currency=parsed.price_currency or "EUR")
+                price = Money(amount=Decimal(str(parsed.price_amount)), currency=parsed.price_currency or "EUR")
 
             await post_listing(
                 listings_repo,
@@ -70,6 +92,7 @@ async def import_telegram_posts(
                 external_url=raw.source_url,
                 posted_at=raw.posted_at,
                 dedup_hash=_dedup_hash(parsed.description),
+                image_urls=raw.image_urls,
             )
             total += 1
 

@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 from slugify import slugify
 
-from app.modules.listings.models import Listing, ListingStatus, ListingValidationError, Money, ContactInfo
+from app.modules.listings.models import (
+    Listing, ListingImage, ListingStatus, ListingValidationError, Money, ContactInfo,
+)
 from app.modules.listings.ports.repository import ListingRepository
 
 
@@ -23,11 +25,17 @@ async def post_listing(
     posted_at: datetime | None = None,
     dedup_hash: str | None = None,
     status: ListingStatus = ListingStatus.ACTIVE,
+    image_urls: list[str] | None = None,
 ) -> Listing:
     if not title.strip():
         raise ListingValidationError("Title is required")
     if not description.strip():
         raise ListingValidationError("Description is required")
+
+    images = [
+        ListingImage(id=None, url=url, original_url=url, position=i)
+        for i, url in enumerate(image_urls or [])
+    ]
 
     listing = Listing(
         id=None,
@@ -48,5 +56,6 @@ async def post_listing(
         posted_at=posted_at,
         last_seen_at=datetime.now(timezone.utc),
         dedup_hash=dedup_hash,
+        images=images,
     )
     return await repo.add(listing)

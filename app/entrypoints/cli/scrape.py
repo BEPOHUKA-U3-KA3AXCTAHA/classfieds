@@ -35,26 +35,80 @@ from app.modules.translation.ports.translator import Translator
 from app.modules.translation.models import ParsedListing
 
 
-class _StubTranslator:
-    """Заглушка-Translator на случай отсутствия Anthropic ключа.
+import re as _re
 
-    Не делает реального LLM-парсинга и перевода — просто разбирает текст эвристически.
-    Заголовок = первая строка (≤100 символов), описание = весь текст, lang = "ru" (большинство наших каналов).
+_PRICE_RE = _re.compile(
+    r"(\d{1,3}(?:[\s ]?\d{3})*(?:[.,]\d+)?)\s*(€|eur|евро|euro)\b",
+    _re.IGNORECASE,
+)
+_PHONE_RE = _re.compile(r"(?<!\d)(\+?\d[\d\s\-()]{8,16}\d)(?!\d)")
+_TG_HANDLE_RE = _re.compile(r"@([a-z0-9_]{4,32})", _re.IGNORECASE)
+_MN_CITIES = ["Podgorica", "Подгорица", "Budva", "Будва", "Kotor", "Котор",
+              "Tivat", "Тиват", "Bar", "Бар", "Herceg Novi", "Херцег Нови",
+              "Cetinje", "Цетинье", "Ulcinj", "Улцинь", "Niksic", "Никшич"]
+_CITY_RE = _re.compile(r"\b(" + "|".join(_MN_CITIES) + r")\b", _re.IGNORECASE)
+
+
+def _meaningful_first_line(text: str, max_len: int = 100) -> str:
+    """Первая строка где есть >=4 буквенных символов (пропускает emoji/хештеги/линию из 📍)."""
+    for line in text.strip().splitlines():
+        line = line.strip().lstrip("#").strip()
+        if sum(1 for c in line if c.isalpha()) >= 4:
+            return line[:max_len]
+    return text.strip().split("\n", 1)[0][:max_len] or "Объявление"
+
+
+class _StubTranslator:
+    """Эвристический Translator на случай отсутствия Anthropic ключа.
+
+    Без LLM. Парсит регулярками: цена (EUR), телефон, telegram-handle, город.
+    Заголовок — первая содержательная строка (не emoji-only, не хештег).
     """
 
     async def parse_post(self, raw_text: str) -> ParsedListing:
-        first = raw_text.strip().split("\n", 1)[0][:100] or "Объявление"
+        text = raw_text.strip()
+        title = _meaningful_first_line(text)
+
+        price_amount = None
+        if (m := _PRICE_RE.search(text)):
+            num = m.group(1).replace(" ", "").replace(" ", "").replace(",", ".")
+            try:
+                price_amount = float(num)
+            except ValueError:
+                pass
+
+        phone = None
+        if (m := _PHONE_RE.search(text)):
+            digits = "".join(c for c in m.group(1) if c.isdigit() or c == "+")
+            if 9 <= len(digits.lstrip("+")) <= 15:
+                phone = digits
+
+        tg = None
+        if (m := _TG_HANDLE_RE.search(text)):
+            tg = m.group(1)
+
+        city = None
+        if (m := _CITY_RE.search(text)):
+            raw_city = m.group(1).title()
+            # нормализуем кириллицу в латиницу для единообразия в базе
+            city_map = {
+                "Подгорица": "Podgorica", "Будва": "Budva", "Котор": "Kotor",
+                "Тиват": "Tivat", "Бар": "Bar", "Херцег Нови": "Herceg Novi",
+                "Цетинье": "Cetinje", "Улцинь": "Ulcinj", "Никшич": "Niksic",
+            }
+            city = city_map.get(raw_city, raw_city)
+
         return ParsedListing(
-            title=first,
-            description=raw_text.strip(),
-            title_translations={"ru": first, "me": first, "en": first},
+            title=title,
+            description=text,
+            title_translations={"ru": title, "me": title, "en": title},
             original_lang="ru",
-            price_amount=None,
-            price_currency="EUR",
-            city=None,
+            price_amount=price_amount,
+            price_currency="EUR" if price_amount else None,
+            city=city,
             category_hint=None,
-            contact_telegram=None,
-            contact_phone=None,
+            contact_telegram=tg,
+            contact_phone=phone,
         )
 
     async def translate_text(self, text: str, src_lang: str, dst_lang: str) -> str:
