@@ -37,6 +37,7 @@ async def post_listing(
         for i, url in enumerate(image_urls or [])
     ]
 
+    now = datetime.now(timezone.utc)
     listing = Listing(
         id=None,
         slug=slugify(title)[:120] or "listing",
@@ -53,8 +54,8 @@ async def post_listing(
         city=city,
         contact=contact or ContactInfo(),
         status=status,
-        posted_at=posted_at,
-        last_seen_at=datetime.now(timezone.utc),
+        posted_at=posted_at or now,    # для native — сейчас, для скрапа — оригинальная дата поста
+        last_seen_at=now,
         dedup_hash=dedup_hash,
         images=images,
     )

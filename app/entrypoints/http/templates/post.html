@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav.post', lang) }} — {{ t('site.name', lang) }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white rounded-lg border border-slate-200 p-6">
+    <h1 class="text-2xl font-bold mb-6">{{ t('nav.post', lang) }}</h1>
+
+    {% if errors %}
+    <div class="bg-red-50 border border-red-200 rounded p-3 mb-4 text-sm text-red-700">
+        <strong>Ошибки:</strong>
+        <ul class="list-disc ml-5 mt-1">
+            {% for err in errors %}<li>{{ err }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/{{ lang }}/post" class="space-y-4">
+        <div>
+            <label class="block text-sm font-semibold mb-1">Заголовок *</label>
+            <input name="title" required maxlength="200" minlength="4"
+                   value="{{ form_data.title or '' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded focus:border-emerald-500 outline-none">
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold mb-1">Описание *</label>
+            <textarea name="description" required rows="6" minlength="20" maxlength="4000"
+                      class="w-full px-3 py-2 border border-slate-300 rounded focus:border-emerald-500 outline-none">{{ form_data.description or '' }}</textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Категория</label>
+                <select name="category_id" class="w-full px-3 py-2 border border-slate-300 rounded">
+                    <option value="">— не выбрана —</option>
+                    {% for c in categories %}
+                    <option value="{{ c.id }}" {% if form_data.category_id == c.id %}selected{% endif %}>
+                        {% if c.icon %}{{ c.icon }} {% endif %}{{ c.name(lang) }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Город</label>
+                <select name="city" class="w-full px-3 py-2 border border-slate-300 rounded">
+                    <option value="">— любой —</option>
+                    {% for c in cities %}
+                    <option value="{{ c }}" {% if form_data.city == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+            <div class="col-span-2">
+                <label class="block text-sm font-semibold mb-1">Цена</label>
+                <input name="price_amount" type="number" step="0.01" min="0"
+                       value="{{ form_data.price_amount or '' }}"
+                       class="w-full px-3 py-2 border border-slate-300 rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Валюта</label>
+                <select name="price_currency" class="w-full px-3 py-2 border border-slate-300 rounded">
+                    {% for cur in currencies %}
+                    <option value="{{ cur }}" {% if form_data.price_currency == cur %}selected{% endif %}>{{ cur }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Telegram</label>
+                <div class="flex">
+                    <span class="inline-flex items-center px-3 bg-slate-100 border border-r-0 border-slate-300 rounded-l text-slate-500">@</span>
+                    <input name="contact_telegram" placeholder="username"
+                           value="{{ form_data.contact_telegram or '' }}"
+                           class="w-full px-3 py-2 border border-slate-300 rounded-r">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Телефон</label>
+                <input name="contact_phone" placeholder="+382..."
+                       value="{{ form_data.contact_phone or '' }}"
+                       class="w-full px-3 py-2 border border-slate-300 rounded">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold mb-1">Картинки (URL по одной на строку, до 8)</label>
+            <textarea name="image_urls" rows="3" placeholder="https://..."
+                      class="w-full px-3 py-2 border border-slate-300 rounded font-mono text-sm">{{ form_data.image_urls or '' }}</textarea>
+            <p class="text-xs text-slate-500 mt-1">Загрузка файлов — в следующей версии. Пока кидай ссылки на imgur / iCloud / etc.</p>
+        </div>
+
+        <button type="submit" class="w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition">
+            Опубликовать
+        </button>
+    </form>
+</div>
+{% endblock %}

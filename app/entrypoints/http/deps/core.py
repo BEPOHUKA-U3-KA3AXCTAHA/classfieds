@@ -8,8 +8,14 @@ from app.infra.db import SessionLocal
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
+    """Auto-commit on success, rollback on exception. Чтения и пустые сессии — no-op."""
     async with SessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 def get_lang(request: Request) -> str:

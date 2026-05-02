@@ -17,9 +17,23 @@ from app.modules.translation import Translator, ParseError
 from app.modules.listings import (
     post_listing,
     ListingRepository,
+    ListingStatus,
     Money,
     ContactInfo,
 )
+
+
+# Маркеры что объявление неактуально / продано — ловим в исходном тексте
+_CLOSED_RE = re.compile(
+    r"(\bпродано\b|\bпродан\b|\bпродана\b|\bне\s+актуально\b|\bнеактуально\b|"
+    r"\bclosed\b|\bsold\b|\barchived\b|\bsnap[\s-]?ovo[\s-]?nije[\s-]?aktuelno\b)",
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+def _detect_closure(text: str) -> ListingStatus:
+    """Эвристика: текст содержит явный маркер 'продано/sold' — отметить как SOLD, иначе ACTIVE."""
+    return ListingStatus.SOLD if _CLOSED_RE.search(text) else ListingStatus.ACTIVE
 
 
 def _dedup_hash(text: str) -> str:
@@ -98,6 +112,7 @@ async def import_telegram_posts(
                 posted_at=raw.posted_at,
                 dedup_hash=_dedup_hash(parsed.description),
                 image_urls=raw.image_urls,
+                status=_detect_closure(raw.text),
             )
             total += 1
 

@@ -29,9 +29,20 @@
     {% if listings %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for listing in listings %}
-        <a href="/{{ lang }}/l/{{ listing.id }}" class="block bg-white border border-slate-200 rounded-lg overflow-hidden hover:border-emerald-500 transition">
+        {% set is_active = listing.status.value == 'active' %}
+        <a href="/{{ lang }}/l/{{ listing.id }}" class="block bg-white border border-slate-200 rounded-lg overflow-hidden hover:border-emerald-500 transition relative">
+            {% if not is_active %}
+            <div class="absolute top-2 left-2 px-2 py-1 text-xs font-bold uppercase rounded
+                {% if listing.status.value == 'sold' %}bg-rose-600 text-white
+                {% elif listing.status.value == 'archived' %}bg-slate-500 text-white
+                {% else %}bg-amber-500 text-white{% endif %}">
+                {% if listing.status.value == 'sold' %}продано
+                {% elif listing.status.value == 'archived' %}архив
+                {% else %}{{ listing.status.value }}{% endif %}
+            </div>
+            {% endif %}
             {% if listing.images %}
-            <img src="{{ listing.images[0].url }}" alt="" class="w-full h-40 object-cover">
+            <img src="{{ listing.images[0].url }}" alt="" class="w-full h-40 object-cover {% if not is_active %}opacity-60{% endif %}">
             {% else %}
             <div class="w-full h-40 bg-slate-100 flex items-center justify-center text-slate-400 text-sm">no image</div>
             {% endif %}
@@ -40,8 +51,9 @@
                 {% if listing.price %}
                 <div class="text-emerald-700 font-bold">{{ listing.price.amount }} {{ listing.price.currency }}</div>
                 {% endif %}
-                <div class="text-xs text-slate-500 mt-1">
-                    {% if listing.city %}{{ listing.city }}{% endif %}
+                <div class="text-xs text-slate-500 mt-1 flex justify-between">
+                    <span>{% if listing.city %}📍 {{ listing.city }}{% endif %}</span>
+                    <span>{{ time_ago(listing.posted_at or listing.imported_at, lang) }}</span>
                 </div>
             </div>
         </a>

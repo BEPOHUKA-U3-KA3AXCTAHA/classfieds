@@ -13,17 +13,31 @@
     {% endif %}
 
     <div class="p-6">
+        {% set is_active = listing.status.value == 'active' %}
+        {% if not is_active %}
+        <div class="mb-4 inline-block px-3 py-1 text-sm font-bold uppercase rounded
+            {% if listing.status.value == 'sold' %}bg-rose-600 text-white
+            {% elif listing.status.value == 'archived' %}bg-slate-500 text-white
+            {% else %}bg-amber-500 text-white{% endif %}">
+            {% if listing.status.value == 'sold' %}продано
+            {% elif listing.status.value == 'archived' %}архив (не актуально)
+            {% else %}{{ listing.status.value }}{% endif %}
+        </div>
+        {% endif %}
+
         <h1 class="text-2xl font-bold mb-2">{{ listing.title_for(lang) }}</h1>
 
         {% if listing.price %}
-        <div class="text-3xl font-bold text-emerald-700 mb-4">
+        <div class="text-3xl font-bold {% if is_active %}text-emerald-700{% else %}text-slate-400 line-through{% endif %} mb-4">
             {{ listing.price.amount }} {{ listing.price.currency }}
         </div>
         {% endif %}
 
         <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600 mb-6 pb-6 border-b border-slate-200">
             {% if listing.city %}<div>📍 {{ listing.city }}</div>{% endif %}
-            {% if listing.posted_at %}<div>🕒 {{ listing.posted_at.strftime('%Y-%m-%d') }}</div>{% endif %}
+            {% if listing.posted_at %}
+            <div>🕒 {{ listing.posted_at.strftime('%Y-%m-%d') }} ({{ time_ago(listing.posted_at, lang) }})</div>
+            {% endif %}
         </div>
 
         {% include "_description.html" %}

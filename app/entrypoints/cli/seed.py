@@ -116,6 +116,10 @@ async def seed_sources(session) -> int:
     if await repo.get_by_name(SourceType.POLOVNI, "polovniautomobili.com") is None:
         await register_source(repo, SourceType.POLOVNI, "polovniautomobili.com", url="https://www.polovniautomobili.com")
         count += 1
+    # Native — для объявлений размещённых юзерами через форму на нашем сайте
+    if await repo.get_by_name(SourceType.NATIVE, "native") is None:
+        await register_source(repo, SourceType.NATIVE, "native", url=None)
+        count += 1
     return count
 
 
