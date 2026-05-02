@@ -134,8 +134,8 @@ async def _make_translator() -> Translator:
     return _StubTranslator()
 
 
-async def _run(mode: str, translator: Translator) -> int:
-    """Открывает session и нужный scraper-адаптер; делает import и коммит."""
+async def _run_telegram(mode: str, translator: Translator) -> int:
+    from app.modules.sources import SourceType
     async with SessionLocal() as session:
         try:
             if mode == "http":
@@ -146,6 +146,7 @@ async def _run(mode: str, translator: Translator) -> int:
                         sources_repo=SqlaSourceRepository(session),
                         listings_repo=SqlaListingRepository(session),
                         translator=translator,
+                        source_type=SourceType.TELEGRAM,
                     )
                 finally:
                     await scraper.close()
@@ -161,6 +162,7 @@ async def _run(mode: str, translator: Translator) -> int:
                         sources_repo=SqlaSourceRepository(session),
                         listings_repo=SqlaListingRepository(session),
                         translator=translator,
+                        source_type=SourceType.TELEGRAM,
                     )
             await session.commit()
             return count
@@ -169,16 +171,48 @@ async def _run(mode: str, translator: Translator) -> int:
             raise
 
 
+async def _run_mojkvadrat(translator: Translator) -> int:
+    from app.modules.sources import SourceType
+    from app.modules.scraping.adapters.mojkvadrat_scraper import MojkvadratScraper
+    async with SessionLocal() as session:
+        try:
+            scraper = MojkvadratScraper()
+            try:
+                count = await import_telegram_posts(
+                    scraper=scraper,
+                    sources_repo=SqlaSourceRepository(session),
+                    listings_repo=SqlaListingRepository(session),
+                    translator=translator,
+                    source_type=SourceType.MOJKVADRAT,
+                )
+            finally:
+                await scraper.close()
+            await session.commit()
+            return count
+        except Exception:
+            await session.rollback()
+            raise
+
+
 async def main(argv: list[str]) -> None:
-    mode = _pick_mode(argv)
-    print(f"  → режим: {mode}")
+    only = "telegram" if "--only-telegram" in argv else \
+           "mojkvadrat" if "--only-mojkvadrat" in argv else "all"
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     translator = await _make_translator()
-    count = await _run(mode, translator)
-    print(f"  ✓ импортировано новых объявлений: {count}")
+
+    total = 0
+    if only in ("all", "telegram"):
+        mode = _pick_mode(argv)
+        print(f"  → telegram режим: {mode}")
+        total += await _run_telegram(mode, translator)
+    if only in ("all", "mojkvadrat"):
+        print(f"  → mojkvadrat.me (HTTP)")
+        total += await _run_mojkvadrat(translator)
+
+    print(f"  ✓ импортировано новых объявлений всего: {total}")
 
 
 if __name__ == "__main__":

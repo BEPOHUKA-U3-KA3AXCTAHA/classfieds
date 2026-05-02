@@ -102,11 +102,15 @@ async def seed_categories(session) -> int:
 async def seed_sources(session) -> int:
     repo = SqlaSourceRepository(session)
     count = 0
+    # Telegram channels
     for name, label in MONTENEGRO_TG_CHANNELS:
         existing = await repo.get_by_name(SourceType.TELEGRAM, name)
-        if existing is not None:
-            continue
-        await register_source(repo, SourceType.TELEGRAM, name, url=f"https://t.me/{name}")
+        if existing is None:
+            await register_source(repo, SourceType.TELEGRAM, name, url=f"https://t.me/{name}")
+            count += 1
+    # Mojkvadrat: один сорс — это весь сайт, scraper'у имя нужно только как метка
+    if await repo.get_by_name(SourceType.MOJKVADRAT, "mojkvadrat.me") is None:
+        await register_source(repo, SourceType.MOJKVADRAT, "mojkvadrat.me", url="https://www.mojkvadrat.me")
         count += 1
     return count
 

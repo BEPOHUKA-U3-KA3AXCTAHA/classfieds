@@ -47,9 +47,14 @@ async def import_telegram_posts(
     listings_repo: ListingRepository,
     translator: Translator,
     limit_per_channel: int = 50,
+    source_type: SourceType = SourceType.TELEGRAM,
 ) -> int:
-    """Process every active Telegram source. Return total new listings posted."""
-    sources = await list_active_sources(sources_repo, type=SourceType.TELEGRAM)
+    """Process every active source of given type via the supplied scraper.
+
+    Defaults to TELEGRAM for backwards compat — but can drive any platform
+    (mojkvadrat, olx, etc.) by passing source_type + matching scraper adapter.
+    """
+    sources = await list_active_sources(sources_repo, type=source_type)
     total = 0
 
     for src in sources:
