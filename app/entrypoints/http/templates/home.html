@@ -1,22 +1,51 @@
 {% extends "base.html" %}
 
+{% set listings = page_data.items %}
+
 {% block content %}
-<section class="mb-8">
+<section class="mb-6">
+    {% if active_category %}
+    <div class="text-sm text-slate-500 mb-1">
+        <a href="/{{ lang }}/" class="hover:text-emerald-700">← {{ t('nav.home', lang) }}</a>
+    </div>
+    <h1 class="text-3xl font-bold mb-2">{% if active_category.icon %}{{ active_category.icon }} {% endif %}{{ active_category.name(lang) }}</h1>
+    {% else %}
     <h1 class="text-3xl font-bold mb-2">{{ t('site.tagline', lang) }}</h1>
-    <form action="/{{ lang }}/" method="get" class="flex gap-2 mt-4">
-        <input type="search" name="q" placeholder="{{ t('search.placeholder', lang) }}"
-               class="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500">
+    {% endif %}
+
+    <form action="" method="get" class="flex flex-wrap gap-2 mt-4">
+        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ t('search.placeholder', lang) }}"
+               class="flex-1 min-w-[200px] px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500">
+
+        <select name="city" class="px-3 py-2 border border-slate-300 rounded-lg">
+            <option value="">— {{ t('listing.location', lang) if t('listing.location', lang) != 'listing.location' else 'Город' }} —</option>
+            {% for c in ['Podgorica','Budva','Kotor','Tivat','Bar','Herceg Novi','Cetinje','Ulcinj','Niksic'] %}
+            <option value="{{ c }}" {% if filters.city == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="number" name="min_price" min="0" step="1" placeholder="от €" value="{{ filters.min_price or '' }}"
+               class="w-24 px-3 py-2 border border-slate-300 rounded-lg">
+        <input type="number" name="max_price" min="0" step="1" placeholder="до €" value="{{ filters.max_price or '' }}"
+               class="w-24 px-3 py-2 border border-slate-300 rounded-lg">
+
         <button type="submit" class="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
             {{ t('search.button', lang) }}
         </button>
+        {% if filters.q or filters.city or filters.min_price or filters.max_price %}
+        <a href="{% if active_category %}/{{ lang }}/c/{{ active_category.slug }}{% else %}/{{ lang }}/{% endif %}"
+           class="px-3 py-2 text-sm text-slate-500 hover:text-rose-600">сбросить</a>
+        {% endif %}
     </form>
 </section>
 
-{% if categories %}
+{% if categories and not active_category %}
 <section class="mb-8">
     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
         {% for cat in categories %}
-        <a href="/{{ lang }}/" class="block p-3 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 text-center text-sm">
+        <a href="/{{ lang }}/c/{{ cat.slug }}"
+           class="block p-3 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 text-center text-sm transition">
+            {% if cat.icon %}<div class="text-2xl mb-1">{{ cat.icon }}</div>{% endif %}
             {{ cat.name(lang) }}
         </a>
         {% endfor %}
@@ -25,7 +54,11 @@
 {% endif %}
 
 <section>
-    <h2 class="text-xl font-semibold mb-4">{{ t('nav.listings', lang) }}</h2>
+    <div class="flex justify-between items-baseline mb-4">
+        <h2 class="text-xl font-semibold">{{ t('nav.listings', lang) }}</h2>
+        <span class="text-sm text-slate-500">найдено: <strong>{{ page_data.total }}</strong></span>
+    </div>
+
     {% if listings %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for listing in listings %}
@@ -59,9 +92,43 @@
         </a>
         {% endfor %}
     </div>
+
+    {# pagination #}
+    {% if page_data.total_pages > 1 %}
+    <nav class="mt-8 flex justify-center items-center gap-2">
+        {% set q_kept = dict(request.query_params) %}
+        {% set _ = q_kept.pop('page', None) %}
+        {% set base_qs = q_kept | urlencode %}
+        {% set sep = '&' if base_qs else '' %}
+        {% set base_path = request.url.path %}
+
+        {% if page_data.has_prev %}
+        <a href="{{ base_path }}?{{ base_qs }}{{ sep }}page={{ page_data.page - 1 }}"
+           class="px-3 py-1.5 border border-slate-300 rounded hover:bg-slate-100">←</a>
+        {% else %}
+        <span class="px-3 py-1.5 border border-slate-200 rounded text-slate-300">←</span>
+        {% endif %}
+
+        <span class="px-3 py-1.5 text-sm text-slate-600">
+            страница <strong>{{ page_data.page }}</strong> из {{ page_data.total_pages }}
+        </span>
+
+        {% if page_data.has_next %}
+        <a href="{{ base_path }}?{{ base_qs }}{{ sep }}page={{ page_data.page + 1 }}"
+           class="px-3 py-1.5 border border-slate-300 rounded hover:bg-slate-100">→</a>
+        {% else %}
+        <span class="px-3 py-1.5 border border-slate-200 rounded text-slate-300">→</span>
+        {% endif %}
+    </nav>
+    {% endif %}
+
     {% else %}
     <div class="bg-white border border-dashed border-slate-300 rounded-lg p-12 text-center text-slate-500">
+        {% if filters.q or filters.city or filters.category_id or filters.min_price or filters.max_price %}
+        Ничего не нашлось по этим фильтрам. <a href="/{{ lang }}/" class="text-emerald-700 hover:underline">сбросить фильтры</a>
+        {% else %}
         {{ t('empty.no_listings', lang) }}
+        {% endif %}
     </div>
     {% endif %}
 </section>

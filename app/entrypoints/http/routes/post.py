@@ -1,17 +1,23 @@
-"""Native posting: GET форма, POST обработка."""
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+"""Native posting: GET форма, POST обработка с upload фото."""
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, File
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
+from slugify import slugify
 
 from app.entrypoints.http.deps.listings import listing_repo
 from app.entrypoints.http.deps.catalog import category_repo
 from app.entrypoints.http.deps.sources import source_repo
+from app.entrypoints.http.deps.storage import image_storage
 from app.entrypoints.http.templates_setup import templates
 from app.entrypoints.http.schemas.listing import ListingCreateForm, MONTENEGRO_CITIES, CURRENCIES
 
 from app.modules.listings import post_listing, ListingValidationError, Money, ContactInfo
 from app.modules.catalog import list_root_categories
 from app.modules.sources import SourceType
+
+
+MAX_FILES = 8
+MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 router = APIRouter()
@@ -51,9 +57,11 @@ async def post_submit(
     contact_telegram: str = Form(""),
     contact_phone: str = Form(""),
     image_urls: str = Form(""),
+    photos: list[UploadFile] = File(default=[]),
     cats_repo=Depends(category_repo),
     src_repo=Depends(source_repo),
     listings=Depends(listing_repo),
+    storage=Depends(image_storage),
 ):
     raw = {
         "title": title,
@@ -95,6 +103,20 @@ async def post_submit(
         raise HTTPException(status_code=500, detail="NATIVE source not seeded — run `python -m app.entrypoints.cli.seed sources`")
 
     money = Money(amount=form.price_amount, currency=form.price_currency) if form.price_amount is not None else None
+
+    # сохраняем загруженные файлы через ImageStorage; pasted URL'ы добавляем как есть
+    listing_slug = slugify(form.title)[:80] or "listing"
+    saved_photo_urls: list[str] = []
+    for f in (photos or [])[:MAX_FILES]:
+        if not f or not f.filename:
+            continue
+        content = await f.read()
+        if not content or len(content) > MAX_FILE_BYTES:
+            continue
+        saved_photo_urls.append(await storage.save(content, f.filename, listing_slug))
+
+    final_image_urls = saved_photo_urls + form.parsed_image_urls()
+
     try:
         listing = await post_listing(
             listings,
@@ -107,7 +129,7 @@ async def post_submit(
             category_id=form.category_id,
             city=form.city,
             contact=ContactInfo(telegram=form.contact_telegram, phone=form.contact_phone),
-            image_urls=form.parsed_image_urls(),
+            image_urls=final_image_urls,
         )
     except ListingValidationError as e:
         errors = [str(e)]

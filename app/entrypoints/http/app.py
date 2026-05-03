@@ -41,6 +41,12 @@ def create_app() -> FastAPI:
     static_dir.mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+    # медиа — загруженные пользователями картинки
+    from pathlib import Path as _P
+    media_dir = _P(settings.media_dir).resolve()
+    media_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(settings.media_url_prefix, StaticFiles(directory=str(media_dir)), name="media")
+
     app.include_router(home_routes.router)
     app.include_router(listings_routes.router)
     app.include_router(post_routes.router)

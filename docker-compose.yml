@@ -1,0 +1,38 @@
+# Postgres + Adminer для локальной разработки.
+# Запуск: docker compose up -d
+# После этого в .env: DATABASE_URL=postgresql+asyncpg://classfieds:classfieds@localhost:5432/classfieds
+# И: python -m app.entrypoints.cli.migrate upgrade
+# Adminer UI: http://localhost:8080  (system=PostgreSQL, server=postgres, user/pass/db = classfieds)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: classfieds-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: classfieds
+      POSTGRES_PASSWORD: classfieds
+      POSTGRES_DB: classfieds
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U classfieds -d classfieds"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  adminer:
+    image: adminer:latest
+    container_name: classfieds-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+volumes:
+  pg_data:

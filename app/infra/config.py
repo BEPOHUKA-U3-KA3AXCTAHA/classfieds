@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     telegram_api_hash: str = ""
     telegram_session: str = "scraper"
 
+    media_dir: str = "media"
+    media_url_prefix: str = "/media"
+
     @property
     def langs(self) -> list[str]:
         return [s.strip() for s in self.supported_langs.split(",") if s.strip()]
