@@ -29,6 +29,7 @@ from app.modules.users.adapters import orm as _u  # noqa: F401
 
 from app.modules.listings.adapters.sqla_repository import SqlaListingRepository
 from app.modules.sources.adapters.sqla_repository import SqlaSourceRepository
+from app.modules.catalog.adapters.sqla_repository import SqlaCategoryRepository
 from app.modules.scraping.adapters.http_telegram_scraper import HttpTelegramScraper
 from app.modules.scraping import import_telegram_posts
 from app.modules.translation.ports.translator import Translator
@@ -146,6 +147,7 @@ async def _run_telegram(mode: str, translator: Translator) -> int:
                         sources_repo=SqlaSourceRepository(session),
                         listings_repo=SqlaListingRepository(session),
                         translator=translator,
+                        categories_repo=SqlaCategoryRepository(session),
                         source_type=SourceType.TELEGRAM,
                     )
                 finally:
@@ -162,6 +164,7 @@ async def _run_telegram(mode: str, translator: Translator) -> int:
                         sources_repo=SqlaSourceRepository(session),
                         listings_repo=SqlaListingRepository(session),
                         translator=translator,
+                        categories_repo=SqlaCategoryRepository(session),
                         source_type=SourceType.TELEGRAM,
                     )
             await session.commit()
@@ -183,6 +186,7 @@ async def _run_mojkvadrat(translator: Translator) -> int:
                     sources_repo=SqlaSourceRepository(session),
                     listings_repo=SqlaListingRepository(session),
                     translator=translator,
+                    categories_repo=SqlaCategoryRepository(session),
                     source_type=SourceType.MOJKVADRAT,
                 )
             finally:
@@ -206,6 +210,7 @@ async def _run_polovni(translator: Translator) -> int:
                     sources_repo=SqlaSourceRepository(session),
                     listings_repo=SqlaListingRepository(session),
                     translator=translator,
+                    categories_repo=SqlaCategoryRepository(session),
                     source_type=SourceType.POLOVNI,
                 )
             finally:

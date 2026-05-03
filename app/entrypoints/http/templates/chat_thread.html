@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <a href="/{{ lang }}/chat" class="text-sm text-slate-500 hover:text-emerald-700">← все чаты</a>
+
+    <div class="mt-3 bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-3">
+        {% if listing.images %}
+        <a href="/{{ lang }}/l/{{ listing.id }}"><img src="{{ listing.images[0].url }}" class="w-16 h-16 rounded object-cover"></a>
+        {% endif %}
+        <div class="flex-1">
+            <a href="/{{ lang }}/l/{{ listing.id }}" class="font-semibold hover:text-emerald-700">{{ listing.title_for(lang) }}</a>
+            <div class="text-sm text-slate-500">
+                {% if listing.price %}{{ listing.price.amount }} {{ listing.price.currency }}{% endif %}
+                {% if listing.city %} · {{ listing.city }}{% endif %}
+                · с {{ other.full_name or other.email }}
+            </div>
+        </div>
+    </div>
+
+    <div id="messages" class="mt-4 bg-white border border-slate-200 rounded-lg p-4 space-y-2 max-h-[60vh] overflow-y-auto"
+         hx-get="/{{ lang }}/chat/{{ conv.id }}/messages_partial"
+         hx-trigger="load, every 3s"
+         hx-swap="innerHTML">
+        {% include "_chat_messages.html" %}
+    </div>
+
+    <form method="POST" action="/{{ lang }}/chat/{{ conv.id }}/send" class="mt-3 flex gap-2">
+        <input name="text" required placeholder="Сообщение…" autocomplete="off"
+               class="flex-1 px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-emerald-500">
+        <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">
+            Отправить
+        </button>
+    </form>
+</div>
+{% endblock %}

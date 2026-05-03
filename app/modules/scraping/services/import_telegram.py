@@ -12,6 +12,7 @@ import re
 from decimal import Decimal
 
 from app.modules.scraping.ports.scraper import Scraper
+from app.modules.scraping.services.categorization import detect_slug, hint_to_slug, resolve_category
 from app.modules.sources import SourceRepository, SourceType, list_active_sources
 from app.modules.translation import Translator, ParseError
 from app.modules.listings import (
@@ -21,6 +22,7 @@ from app.modules.listings import (
     Money,
     ContactInfo,
 )
+from app.modules.catalog import CategoryRepository
 
 
 # Маркеры что объявление неактуально / продано — ловим в исходном тексте
@@ -60,6 +62,7 @@ async def import_telegram_posts(
     sources_repo: SourceRepository,
     listings_repo: ListingRepository,
     translator: Translator,
+    categories_repo: CategoryRepository | None = None,
     limit_per_channel: int = 50,
     source_type: SourceType = SourceType.TELEGRAM,
 ) -> int:
@@ -70,6 +73,12 @@ async def import_telegram_posts(
     """
     sources = await list_active_sources(sources_repo, type=source_type)
     total = 0
+
+    # подгружаем мапу slug→id один раз для всех итераций
+    slug_to_id: dict[str, int] = {}
+    if categories_repo is not None:
+        for c in await categories_repo.list_roots():
+            slug_to_id[c.slug] = c.id
 
     for src in sources:
         async for raw in scraper.fetch(src.name, limit=limit_per_channel):
@@ -94,6 +103,10 @@ async def import_telegram_posts(
             if parsed.price_amount is not None:
                 price = Money(amount=Decimal(str(parsed.price_amount)), currency=parsed.price_currency or "EUR")
 
+            # категория: сначала пробуем hint от LLM, fallback — эвристика по тексту
+            category_slug = hint_to_slug(parsed.category_hint) or detect_slug(raw.text)
+            category_id = resolve_category(category_slug, slug_to_id)
+
             await post_listing(
                 listings_repo,
                 source_id=src.id,
@@ -102,6 +115,7 @@ async def import_telegram_posts(
                 original_lang=parsed.original_lang,
                 title_translations=parsed.title_translations,
                 price=price,
+                category_id=category_id,
                 city=parsed.city,
                 contact=ContactInfo(
                     telegram=parsed.contact_telegram,

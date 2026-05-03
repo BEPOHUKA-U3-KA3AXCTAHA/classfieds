@@ -19,6 +19,7 @@ from app.modules.listings.adapters import orm as _listings_orm  # noqa: F401
 from app.modules.catalog.adapters import orm as _catalog_orm  # noqa: F401
 from app.modules.sources.adapters import orm as _sources_orm  # noqa: F401
 from app.modules.users.adapters import orm as _users_orm  # noqa: F401
+from app.modules.messaging.adapters import orm as _messaging_orm  # noqa: F401
 
 
 config = context.config

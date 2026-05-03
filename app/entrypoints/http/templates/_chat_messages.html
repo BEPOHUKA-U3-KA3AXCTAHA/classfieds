@@ -1,0 +1,15 @@
+{% if not messages %}
+<div class="text-center text-slate-400 text-sm py-8">Сообщений ещё нет — напиши первый.</div>
+{% endif %}
+{% for m in messages %}
+{% set mine = m.sender_id == user.id %}
+<div class="flex {% if mine %}justify-end{% else %}justify-start{% endif %}">
+    <div class="max-w-[75%] px-3 py-2 rounded-lg
+        {% if mine %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-900{% endif %}">
+        <div class="whitespace-pre-wrap text-sm">{{ m.text }}</div>
+        <div class="text-xs mt-1 {% if mine %}text-emerald-100{% else %}text-slate-400{% endif %}">
+            {{ time_ago(m.created_at, lang) }}
+        </div>
+    </div>
+</div>
+{% endfor %}

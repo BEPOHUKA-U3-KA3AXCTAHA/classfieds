@@ -8,6 +8,7 @@ from app.entrypoints.http.deps.listings import listing_repo
 from app.entrypoints.http.deps.catalog import category_repo
 from app.entrypoints.http.deps.sources import source_repo
 from app.entrypoints.http.deps.storage import image_storage
+from app.entrypoints.http.deps.auth import current_user_optional
 from app.entrypoints.http.templates_setup import templates
 from app.entrypoints.http.schemas.listing import ListingCreateForm, MONTENEGRO_CITIES, CURRENCIES
 
@@ -62,6 +63,7 @@ async def post_submit(
     src_repo=Depends(source_repo),
     listings=Depends(listing_repo),
     storage=Depends(image_storage),
+    user=Depends(current_user_optional),
 ):
     raw = {
         "title": title,
@@ -129,6 +131,7 @@ async def post_submit(
             category_id=form.category_id,
             city=form.city,
             contact=ContactInfo(telegram=form.contact_telegram, phone=form.contact_phone),
+            author_user_id=user.id if user else None,
             image_urls=final_image_urls,
         )
     except ListingValidationError as e:

@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.infra.config import get_settings
 from app.infra.db import engine, Base
@@ -11,12 +12,15 @@ from app.modules.listings.adapters import orm as _listings_orm  # noqa: F401
 from app.modules.catalog.adapters import orm as _catalog_orm  # noqa: F401
 from app.modules.sources.adapters import orm as _sources_orm  # noqa: F401
 from app.modules.users.adapters import orm as _users_orm  # noqa: F401
+from app.modules.messaging.adapters import orm as _messaging_orm  # noqa: F401
 
 from app.entrypoints.http.middleware import LanguageMiddleware
 from app.entrypoints.http.admin import setup_admin
 from app.entrypoints.http.routes import home as home_routes
 from app.entrypoints.http.routes import listings as listings_routes
 from app.entrypoints.http.routes import post as post_routes
+from app.entrypoints.http.routes import auth as auth_routes
+from app.entrypoints.http.routes import chat as chat_routes
 
 
 @asynccontextmanager
@@ -35,6 +39,9 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="Oglasi.me", debug=settings.debug, lifespan=_lifespan)
 
+    # SessionMiddleware ДО LanguageMiddleware — middleware применяются reverse,
+    # т.е. сессия будет внешним слоем (раскрывается раньше при request).
+    app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=60 * 60 * 24 * 30)
     app.add_middleware(LanguageMiddleware)
 
     static_dir = Path(__file__).parent / "static"
@@ -50,6 +57,8 @@ def create_app() -> FastAPI:
     app.include_router(home_routes.router)
     app.include_router(listings_routes.router)
     app.include_router(post_routes.router)
+    app.include_router(auth_routes.router)
+    app.include_router(chat_routes.router)
     setup_admin(app, engine)
 
     return app
